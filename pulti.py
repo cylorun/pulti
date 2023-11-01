@@ -445,6 +445,7 @@ class WindowManager:
         user32.SetForegroundWindow(hwnd)
         user32.BringWindowToTop(hwnd)
 
+    @staticmethod
     def set_titles():
         for inst in instances:
             inst.set_title()
