@@ -1,4 +1,4 @@
-import wmi, win32gui, win32con,  psutil, threading, pythoncom
+import wmi, win32gui, win32con,  psutil, threading, pythoncom, subprocess
 import time, re, ahk, math, keyboard, os, json, logging, datetime, requests,sys,ctypes
 import config 
 from pygame import mixer 
@@ -392,7 +392,10 @@ class Util:
             os.makedirs(f'{PULTI_DIR}\\logs')
             Util.download_assets(f'{PULTI_DIR}\\media', media_urls)
             Util.download_assets(f'{PULTI_DIR}\\scripts',['https://gist.github.com/cylorun/4fc69762a138f8ad88fb509d3d24bf73/raw/8d6995f5dbc8f0e667d0acb3a3b81b25963a2d8c/pulti_obs.lua'])
-
+    
+    def open_exporer(path):
+        subprocess.Popen(f'explorer {path}')
+        messagebox.showinfo('Tutorial','Go to OBS > Tools > Scripts press the " + " and add this script there!')
 
 class WindowManager:
 

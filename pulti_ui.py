@@ -100,6 +100,8 @@ for i,s in enumerate(ts):
 tk.Button(main_panel, text="Redetect Instances", command= pulti.Util.redetect_instances).grid(row=1,column=1)
 tk.Button(main_panel,text="Set Titles", command=pulti.WindowManager.set_titles).grid(row=2,column=1)
 tk.Button(main_panel,text="Close Instances",command=pulti.Util.close_instances).grid(row=3,column=1)
+tk.Button(main_panel,text="Go to OBS controller",command= lambda: pulti.Util.open_exporer(f'{pulti.PULTI_DIR}\\scripts'),).grid(row=4,column=1)
+
 
 threading.Thread(target=pulti.Util.init, daemon=True).start() # daemon thread so the program can instantly shut down when wanted, instead of having to wait
 
