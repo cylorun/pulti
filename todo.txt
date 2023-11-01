@@ -1,7 +1,6 @@
 Make window switching better and more consistent, also takes a while to switch
-Make it work with uneven rows and cols(i think only grid mode has this issue)
-Make the GUI better, dark mode and not 770px tall
-Improve debugging
-Window modes(fs, b, w)
+Dark mode gui
+Fullscreen
 save & load instances from paths
-Lua 'obs.txt' path :skull:
+instance[] out of range crash 
+automatic obs setup

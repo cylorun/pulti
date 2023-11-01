@@ -3,9 +3,13 @@ import time, re, ahk, math, keyboard, os, json, logging, datetime, requests,sys,
 import config 
 from pygame import mixer 
 from macro import Window
+from tkinter import messagebox
 
-VERSION = '0.2.3'
-CURRENT_LOG = f'{os.getcwd()}\\logs\\{datetime.date.today()}.log'
+VERSION = '0.3.0'
+
+PULTI_DIR = f'{os.environ['USERPROFILE']}\\.Pulti'
+CURRENT_LOG = f'{PULTI_DIR}\\logs\\{datetime.date.today()}.log'
+
 THREADS = os.cpu_count()
 INST_WIDTH = config.res[0]
 INST_HEIGHT = config.res[1] 
@@ -23,22 +27,15 @@ BACKGROUND_THREADS = int(THREADS*0.3)
 INWORLD_THREADS = int(THREADS*0.1)
 
 ahk = ahk.AHK()
-os.makedirs(os.path.join(os.getcwd(), 'logs')) if not os.path.exists(os.path.join(os.getcwd(), 'logs')) else None    
-logging.basicConfig(
-    level=logging.DEBUG, 
-    format='[%(asctime)s] [%(levelname)s] %(message)s', 
-    datefmt='%H:%M:%S', 
-    handlers=[logging.FileHandler(CURRENT_LOG), logging.StreamHandler()]
-    )
+
 
 instances = []
 running = True
 
-asset_urls = ['https://cdn.discordapp.com/attachments/961288757410148433/1168621698627686420/lock.wav',
+media_urls = ['https://cdn.discordapp.com/attachments/961288757410148433/1168621698627686420/lock.wav',
             'https://cdn.discordapp.com/attachments/1006684003409072279/1169207873604173904/ready.wav',
             'https://cdn.discordapp.com/attachments/961288757410148433/1168623957272956998/reset.wav',
-            'https://cdn.discordapp.com/attachments/1006684003409072279/1169204149502619679/pulti.ico',
-            'https://gist.github.com/cylorun/4fc69762a138f8ad88fb509d3d24bf73/raw/9649a74b61bead0f347791bd92e855dec06cfbeb/pulti_obs.lua'
+            'https://cdn.discordapp.com/attachments/1006684003409072279/1169204149502619679/pulti.ico'
             ]
 
 
@@ -83,7 +80,7 @@ class MinecraftInstance:
     def reset(self) -> None:
         self.preview_paused = False
         self.inworld_paused = False
-        WindowManager.set_reset(self.hwnd)
+        WindowManager.set_reset(self)
         ahk.run_script(f'ControlSend, , {{{self.create_new_world_key}}}, ahk_id {str(self.hwnd)}')
 
             
@@ -102,14 +99,14 @@ class MinecraftInstance:
 
     def exit_world(self) -> None:  # ! why does this function take 13 years to run :/
         self.locked = False
-        if Util.get_mode() == 'g':
+        if Util.get_wall_mode() == 'g':
             WindowManager.set_instance_in_grid(self.hwnd,self.num)
         else: 
             win32gui.SetWindowPos(self.hwnd, win32con.HWND_TOP, 0, 0, INST_WIDTH, RESETTING_HEIGHT, win32con.SWP_FRAMECHANGED)
 
         if config.settings['bypass'] and not len(Util.get_locked_instances()) == 0:
                 Util.bypass()
-        elif Util.get_mode() == 'w':
+        elif Util.get_wall_mode() == 'w':
                 ObsManager.open_projector()
 
         Util.reset_instance(self)
@@ -121,13 +118,19 @@ class Util:
 
     @staticmethod
     def init() -> None:
+        logging.basicConfig(
+        level=logging.DEBUG, 
+        format='[%(asctime)s] [%(levelname)s] %(message)s', 
+        datefmt='%H:%M:%S', 
+        handlers=[logging.FileHandler(CURRENT_LOG), logging.StreamHandler()]
+        )
         logging.info(f'------------- Pulti v{VERSION} -------------')
         Util.redetect_instances()
         logging.info(f'Current settings:\n {str(config.settings).replace(',','\n')}')
         threading.Thread(target=Util.reset_helper, daemon=True).start()
         threading.Thread(target=Util.affinity_helper, daemon=True).start()
         logging.info('Ready!')
-        Util.play_sound(f'{os.getcwd()}\\assets\\ready.wav')
+        Util.play_sound('ready.wav')
         Util.set_hotkeys()
 
     @staticmethod
@@ -141,16 +144,16 @@ class Util:
 
     @staticmethod
     def set_instance_positions():
-        if Util.get_mode() == 'w':
+        if Util.get_wall_mode() == 'w':
             for inst in instances:
-                WindowManager.set_reset(inst.hwnd)
-        elif Util.get_mode() == 'g':
+                WindowManager.set_reset(inst)
+        elif Util.get_wall_mode() == 'g':
             WindowManager.make_instance_grid(instances)
 
     @staticmethod
     def get_resets() -> int:
         try:
-            with open('resets.txt', 'r+') as file:
+            with open(f'{PULTI_DIR}\\resets.txt', 'r+') as file:
                 content = file.readline()
                 if content == '':
                     return 0
@@ -163,12 +166,12 @@ class Util:
     def update_reset_count(count=1) -> None:
         current_count = Util.get_resets()
         new_count = current_count + count
-        with open('resets.txt', 'w') as file:
+        with open(f'{PULTI_DIR}\\resets.txt', 'w') as file:
             file.write(str(new_count))
             file.close()  
 
     @staticmethod
-    def get_mode() -> str:
+    def get_wall_mode() -> str:
         match config.settings['mode']:
             case 'Wall': return 'w'
             case 'Grid': return 'g'
@@ -212,7 +215,7 @@ class Util:
 
     @staticmethod
     def reset_instance(inst) -> None:  
-        Util.play_sound(f'{os.getcwd()}\\assets\\reset.wav')
+        Util.play_sound('reset.wav')
         threading.Thread(target=inst.reset).start()  
 
     @staticmethod
@@ -243,7 +246,7 @@ class Util:
         if Util.allow_hotkey():
             inst = instances[Util.mouse_pos_to_inst_num()]
             inst.locked = True
-            Util.play_sound(f'{os.getcwd()}\\assets\\lock.wav')
+            Util.play_sound('lock.wav')
             
     @staticmethod
     def get_locked_instances() -> list:
@@ -277,21 +280,21 @@ class Util:
         psutil.Process(pid).cpu_affinity(cores)
 
     @staticmethod
-    def play_sound(file) -> None:
+    def play_sound(audio_file) -> None:
         try:
             mixer.init()
-            mixer.music.load(file)
+            mixer.music.load(f'{PULTI_DIR}\\media\\{audio_file}')
             mixer.music.play()
         except Exception:
-            logging.error(f'Sound file not founnd, {file.split('\\')[-1]}')
+            logging.error(f'Audio` file not founnd, {audio_file.split('\\')[-1]}')
             Util.download_assets()
 
 
     @staticmethod
     def allow_hotkey() -> bool:
-        if Util.get_mode() == 'w': 
+        if Util.get_wall_mode() == 'w': 
             return Util.projector_active()
-        elif Util.get_mode() == 'g': 
+        elif Util.get_wall_mode() == 'g': 
             if Util.mc_active():
                 inst = Util.get_playing_instance()
                 state = inst.get_wp_state()
@@ -316,7 +319,7 @@ class Util:
                 json.dump(paths, json_file)
 
     def load_instance_paths() -> None:
-        try:
+        try: 
             with open("paths.json", "r") as json_file:
                 data = json.load(json_file)
                 for inst in instances:
@@ -364,24 +367,35 @@ class Util:
                             case 'inworld': Util.set_threads(inst.pid, INWORLD_THREADS)
             time.sleep(AFFINITY_DELAY)
     
-    def download_assets():
-        logging.info('Downloading assets')
-        for url in asset_urls:
+    def download_assets(path, a_li):
+        # logging.info('Downloading assets')
+        for url in a_li:
             try:
                 response = requests.get(url)
                 file_name = url.split('/')[-1]
 
-                with open(f'{os.getcwd()}\\assets\\{file_name}', "wb") as file:
+                with open(f'{path}\\{file_name}', "wb") as file:
                     file.write(response.content)
-                    logging.info(f'Downloaded {file_name}, to {os.getcwd()}/assets')
+                    # logging.info(f'Downloaded {file_name}, to {os.getcwd()}/assets')
 
             except FileExistsError as e:
-                logging.error(f'File already exists \n {e}')
-                
-        logging.info('Finished downloading all assets')
+                # logging.error(f'File already exists \n {e}')
+                print(e)
+        # logging.info('Finished downloading all assets')
+
+
+    def make_pulti_dir():
+        if not os.path.exists(PULTI_DIR):
+            threading.Thread(target=messagebox.showinfo,args=("Pulti Info", "Downloading assets, this might take a bit")).start()
+            os.makedirs(f'{PULTI_DIR}\\media')
+            os.makedirs(f'{PULTI_DIR}\\scripts')
+            os.makedirs(f'{PULTI_DIR}\\logs')
+            Util.download_assets(f'{PULTI_DIR}\\media', media_urls)
+            Util.download_assets(f'{PULTI_DIR}\\scripts',['https://gist.github.com/cylorun/4fc69762a138f8ad88fb509d3d24bf73/raw/8d6995f5dbc8f0e667d0acb3a3b81b25963a2d8c/pulti_obs.lua'])
 
 
 class WindowManager:
+
     @staticmethod
     def set_playing(hwnd):
         if Util.get_window_mode() == 'b':
@@ -401,17 +415,20 @@ class WindowManager:
     def set_borderless_pos(hwnd,x, y, w , h) -> None:
         style = win32gui.GetWindowLong(hwnd, win32con.GWL_STYLE) & ~(win32con.WS_CAPTION | win32con.WS_THICKFRAME)
         win32gui.SetWindowLong(hwnd, win32con.GWL_STYLE, style)
-        win32gui.SetWindowPos(hwnd, win32con.HWND_TOP, 0, 0, w, h, win32con.SWP_FRAMECHANGED)
+        win32gui.SetWindowPos(hwnd, win32con.HWND_TOP, x, y, w, h, win32con.SWP_FRAMECHANGED)
 
     @staticmethod
     def set_instance_in_grid(hwnd, num) -> None:
+        num = num - 1
         w = INST_WIDTH // config.settings['cols']
-        h = (INST_HEIGHT - config.taskbar_adjust) // config.settings['rows']
-        num = num -1
+        h = (INST_HEIGHT - int(config.settings['taskbar_height'])) // config.settings['rows']
+        x = (num % config.settings['cols'])
+        y = (num // config.settings['cols'])  # Divide by the number of columns, not rows
+
         if Util.get_window_mode() == 'b':
-            WindowManager.set_borderless_pos(hwnd, (num % config.settings['cols'])*w,(num // config.settings['rows'])*h , w, h) 
+            WindowManager.set_borderless_pos(hwnd, x*w, y*h , w, h) 
         elif Util.get_window_mode() == 'w':
-            WindowManager.set_windowed_pos(hwnd, (num % config.settings['cols'])*w,(num // config.settings['rows'])*h , w, h) 
+            WindowManager.set_windowed_pos(hwnd, x*w ,y*h , w, h) 
 
     @staticmethod
     def make_instance_grid(inst_list) -> None:
@@ -419,11 +436,14 @@ class WindowManager:
             WindowManager.set_instance_in_grid(inst.hwnd, inst.num)
 
     @staticmethod    
-    def set_reset(hwnd):
-        if Util.get_window_mode() == 'b':
-            WindowManager.set_borderless_pos(hwnd, 0, 0, INST_WIDTH, RESETTING_HEIGHT)
-        elif Util.get_window_mode() == 'w':
-            WindowManager.set_windowed_pos(hwnd, 0, 0, INST_WIDTH, RESETTING_HEIGHT)
+    def set_reset(inst):
+        if Util.get_wall_mode() == 'w':
+            match Util.get_window_mode():
+                case 'b': WindowManager.set_borderless_pos(inst.hwnd, 0, 0, INST_WIDTH, RESETTING_HEIGHT)
+                case 'w': WindowManager.set_windowed_pos(inst.hwnd, 0, 0, INST_WIDTH, RESETTING_HEIGHT)
+        else:
+            WindowManager.set_instance_in_grid(inst.hwnd, inst.num)
+
 
     @staticmethod
     def maximize_window(hwnd):
@@ -431,15 +451,6 @@ class WindowManager:
         
     @staticmethod
     def activate_window(hwnd):
-        # win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)  # Restore the current foreground window
-        # win32gui.ShowWindow(hwnd, win32con.SW_SHOWMINIMIZED)  # Minimize it (optional)
-        # win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)  # Restore it (optional)
-        # win32gui.ShowWindow(hwnd, win32con.SW_SHOWMAXIMIZED)
-
-        # window_element = findwindows.find_element(handle=hwnd)
-        # window = Desktop(backend="uia").window(handle=window_element.handle)
-        # window.set_focus()
-
         user32 = ctypes.windll.user32
         user32.SwitchToThisWindow(hwnd, True)
         user32.SetForegroundWindow(hwnd)
@@ -454,21 +465,22 @@ class ObsManager:
 
     @staticmethod
     def update_obs(scene):
-        with open('obs.txt','w') as file:
-            if scene == 'w':
-                s = config.settings['wall_scene']
-            else:
-                s =f'{config.settings['inst_format_obs'].replace('*', scene)}'
-            file.write(s)
-        logging.info(f'Obs cmd: {s}')
+        if not Util.get_wall_mode == 'g':
+            with open(f'{PULTI_DIR}\\obs.txt','w') as file:
+                if scene == 'w':
+                    s = config.settings['wall_scene']
+                else:
+                    s =f'{config.settings['inst_format_obs'].replace('*', scene)}'
+                file.write(s)
+            logging.info(f'Obs cmd: {s}')
 
     @staticmethod
     def get_projector_hwnd():
         win = Window.find_by_title('Projector')
         return Window.get_hwnd(win[0])
-    
+
     @staticmethod
-    def open_projector() -> None:  #! shit doesnt work :/
+    def open_projector() -> None:  #! shit doesnt work :/, sometimes instances seem to be put in "always on top"
         try:
             ObsManager.update_obs('w')
             WindowManager.activate_window(ObsManager.get_projector_hwnd())
@@ -477,4 +489,4 @@ class ObsManager:
 
 
 if __name__ == '__main__':
-    Util.init()
+    print('runnin the roon one!')

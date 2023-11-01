@@ -15,5 +15,15 @@ A Minecraft Multi-Instance resetting macro in python
 
 - Grid-Mode, This will put all your instances in a grid on your desktop, so no obs needed.
 
+# Settings
+- Wall-Mode, Just normal wall.
+- Grid-Mode, This will put all your instances in a grid on your desktop, so no obs needed.
+
+- Taskbar-Height(px), This is used for grid mode so instances dont get stuck under the taskbar.
+- Instance-Format-Obs, If the instance format is incorrect or does not have a astrix(*) in the correct place, then the obs switching will not work properly. 
+- Wall-Scene, If this not the same as your Wall/Resetting scene in OBS then the switching won't work.
+
+
+
 # Help
 **@cylorun** on Discord.

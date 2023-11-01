@@ -16,5 +16,6 @@ settings = {
     "cols": 3,
     "inst_format_obs": "Instance *",
     "wall_scene": "The Wall",
-    "window_mode": "Borderless"
+    "window_mode": "Borderless",
+    "taskbar_height": 40
 }
