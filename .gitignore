@@ -1,0 +1,11 @@
+resets.txt
+*.json
+*.spec
+test.py
+
+
+__pycache__/
+build/
+dist/
+logs/
+.vscode/
