@@ -151,24 +151,30 @@ class Util:
             WindowManager.make_instance_grid(instances)
 
     @staticmethod
-    def get_resets() -> int:
+    def get_resets(file) -> int:
         try:
-            with open(f'{PULTI_DIR}\\resets.txt', 'r+') as file:
-                content = file.readline()
-                if content == '':
+            file_path = f'{PULTI_DIR}\\{file}'
+            if not os.path.exists(file_path):
+                print(f"File {file_path} does not exist.")
+                return 0
+
+            with open(file_path, 'r') as resets_file:
+                r = resets_file.read().strip()
+                if not r:
+                    print(f"File {file_path} is empty.")
                     return 0
-                else:
-                    return int(content)
-        except FileNotFoundError:
-            return 0 
+                return int(r)
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return 0
+
 
     @staticmethod
     def update_reset_count(count=1) -> None:
-        current_count = Util.get_resets()
-        new_count = current_count + count
-        with open(f'{PULTI_DIR}\\resets.txt', 'w') as file:
-            file.write(str(new_count))
-            file.close()  
+        with open(f'{PULTI_DIR}\\resets.txt', 'w') as resets, open(f'{PULTI_DIR}\\session_resets.txt', 'w') as session_resets:
+            v = Util.get_resets('resets.txt') + count
+            resets.write(str(v))
+            session_resets.write(str(Util.get_resets('session_resets.txt') + count))
 
     @staticmethod
     def get_wall_mode() -> str:
@@ -308,7 +314,7 @@ class Util:
     @staticmethod
     def close_instances() -> None:
         for inst in instances:
-            os.kill(inst.pid, 15) #! not tested
+            os.kill(inst.pid, 15) 
 
     
     def save_instance_paths() -> None: # wip
@@ -493,3 +499,4 @@ class ObsManager:
 
 if __name__ == '__main__':
     print('runnin the roon one!')
+    Util.update_reset_count(14)
