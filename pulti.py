@@ -289,7 +289,6 @@ class Util:
             mixer.init()
             mixer.music.load(f'{PULTI_DIR}\\media\\{audio_file}')
             mixer.music.play()
-            mixer.music.unload()
         except Exception:
             logging.error(f'Audio` file not founnd, {audio_file.split('\\')[-1]}')
             Util.download_assets()
