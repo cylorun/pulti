@@ -42,7 +42,7 @@ media_urls = ['https://cdn.discordapp.com/attachments/961288757410148433/1168621
 class MinecraftInstance:
 
     def __init__(self, window):
-        self.hwnd = Window.get_hwnd(window)
+        self.hwnd = window.hwnd
         self.pid = Window.get_pid(window)
         self.locked = False
         self.path =  self.get_inst_path()
@@ -151,32 +151,6 @@ class Util:
             WindowManager.make_instance_grid(instances)
 
     @staticmethod
-    def get_resets(file) -> int:
-        try:
-            file_path = f'{PULTI_DIR}\\{file}'
-            if not os.path.exists(file_path):
-                print(f"File {file_path} does not exist.")
-                return 0
-
-            with open(file_path, 'r') as resets_file:
-                r = resets_file.read().strip()
-                if not r:
-                    print(f"File {file_path} is empty.")
-                    return 0
-                return int(r)
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            return 0
-
-
-    @staticmethod
-    def update_reset_count(count=1) -> None:
-        with open(f'{PULTI_DIR}\\resets.txt', 'w') as resets, open(f'{PULTI_DIR}\\session_resets.txt', 'w') as session_resets:
-            v = Util.get_resets('resets.txt') + count
-            resets.write(str(v))
-            session_resets.write(str(Util.get_resets('session_resets.txt') + count))
-
-    @staticmethod
     def get_wall_mode() -> str:
         match config.settings['mode']:
             case 'Wall': return 'w'
@@ -190,6 +164,26 @@ class Util:
             case 'Windowed': return 'w'
 
     @staticmethod
+    def get_resets(file) -> int:
+        reset_file = f'{PULTI_DIR}\\{file}'
+        try:
+            with open(reset_file, 'r') as resets_file:
+                return int(resets_file.read().strip())
+        except Exception:
+            if not os.path.exists(reset_file):
+                with open(reset_file,'x'):
+                    pass
+            return 0
+        
+    @staticmethod
+    def update_reset_count(count=1) -> None:
+        r = str(Util.get_resets('resets.txt') + count)
+        sr = str(Util.get_resets('session_resets.txt') + count)
+        with open(f'{PULTI_DIR}\\resets.txt', 'w') as resets, open(f'{PULTI_DIR}\\session_resets.txt', 'w') as session_resets:
+            resets.write(r)
+            session_resets.write(r)
+
+    @staticmethod
     def set_hotkeys()-> None:
         keyboard.add_hotkey(config.settings['reset_single'], Util.reset_from_projector)
         keyboard.add_hotkey(config.settings['play'], Util.join_world_from_projector)
@@ -200,9 +194,13 @@ class Util:
         keyboard.wait('f9')
 
     @staticmethod
-    def mouse_pos_to_inst_num() -> int:
+    def mouse_pos_to_inst() -> int:
         mx, my = win32gui.GetCursorPos()
-        return (math.floor(my / (INST_HEIGHT / config.settings['rows'])) * config.settings['cols']) + math.floor(mx / (INST_WIDTH / config.settings['cols']))
+        try:
+            return instances[(math.floor(my / (INST_HEIGHT / config.settings['rows'])) * config.settings['cols']) + math.floor(mx / (INST_WIDTH / config.settings['cols']))]
+        except Exception as e:
+            messagebox.showinfo('Error',f'Your rows and columns are most likely not configured correctly \n{e}')
+            return instances[0] #! , gotta handle this 
 
     @staticmethod
     def projector_active() -> bool:
@@ -241,7 +239,7 @@ class Util:
     @staticmethod
     def reset_focus() -> None:
         if Util.allow_hotkey():
-            inst = instances[Util.mouse_pos_to_inst_num()]
+            inst = Util.mouse_pos_to_inst()
             Util.lock_instance()
             Util.reset_all()
             if 'inworld' in inst.get_wp_state():
@@ -250,7 +248,7 @@ class Util:
     @staticmethod
     def lock_instance() -> None:
         if Util.allow_hotkey():
-            inst = instances[Util.mouse_pos_to_inst_num()]
+            inst = Util.mouse_pos_to_inst()
             inst.locked = True
             Util.play_sound('lock.wav')
             
@@ -260,19 +258,19 @@ class Util:
         for inst in instances:
             if inst.locked == True:
                 locked.append(inst)
-        return locked
+        return locked 
     
     
     @staticmethod
     def reset_from_projector()-> None:
         Util.update_reset_count()
         if Util.allow_hotkey():
-            Util.reset_instance(instances[Util.mouse_pos_to_inst_num()])
+            Util.reset_instance(Util.mouse_pos_to_inst())
 
     @staticmethod
     def join_world_from_projector()-> None:
         if Util.allow_hotkey():
-            instances[Util.mouse_pos_to_inst_num()].enter()
+            Util.mouse_pos_to_inst().enter()
     
     @staticmethod
     def bypass() -> None:
@@ -317,7 +315,7 @@ class Util:
             os.kill(inst.pid, 15) 
 
     
-    def save_instance_paths() -> None: # wip
+    def save_instance_paths() -> None: #! wip
         paths = {}
         for inst in instances:
             paths[inst.num] = inst.path
@@ -486,7 +484,7 @@ class ObsManager:
     @staticmethod
     def get_projector_hwnd():
         win = Window.find_by_title('Projector')
-        return Window.get_hwnd(win[0])
+        return win[0].hwnd
 
     @staticmethod
     def open_projector() -> None:  #! shit doesnt work :/, sometimes instances seem to be put in "always on top"
@@ -500,3 +498,5 @@ class ObsManager:
 if __name__ == '__main__':
     print('runnin the roon one!')
     Util.update_reset_count(14)
+    print(open(f'{PULTI_DIR}\\resets.txt', 'r').read())
+

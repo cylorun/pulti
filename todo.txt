@@ -2,5 +2,5 @@ Make window switching better and more consistent, also takes a while to switch
 Dark mode gui
 Fullscreen
 save & load instances from paths
-instance[] out of range crash 
 automatic obs setup
+more accurate reset counter, checks for world creation
