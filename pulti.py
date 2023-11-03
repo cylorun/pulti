@@ -41,7 +41,7 @@ media_urls = ['https://cdn.discordapp.com/attachments/961288757410148433/1168621
 
 class MinecraftInstance:
 
-    def __init__(self, window):
+    def __init__(self, window: Window):
         self.hwnd = window.hwnd
         self.pid = Window.get_pid(window)
         self.locked = False
@@ -289,6 +289,7 @@ class Util:
             mixer.init()
             mixer.music.load(f'{PULTI_DIR}\\media\\{audio_file}')
             mixer.music.play()
+            mixer.music.unload()
         except Exception:
             logging.error(f'Audio` file not founnd, {audio_file.split('\\')[-1]}')
             Util.download_assets()
@@ -328,6 +329,8 @@ class Util:
                 data = json.load(json_file)
                 for inst in instances:
                     inst.path = data[inst.num]
+                for key, value in data:
+                    pass
         except FileNotFoundError:
             pass
 
@@ -352,7 +355,7 @@ class Util:
                         inst.inworld_paused = True
             time.sleep(RESET_DELAY)
 
-    def affinity_helper():
+    def affinity_helper() -> None:
         while running:
             for inst in instances:
                 if inst.locked:
@@ -371,24 +374,19 @@ class Util:
                             case 'inworld': Util.set_threads(inst.pid, INWORLD_THREADS)
             time.sleep(AFFINITY_DELAY)
     
-    def download_assets(path, a_li):
-        # logging.info('Downloading assets')
+    def download_assets(path, a_li) -> None:
         for url in a_li:
             try:
                 response = requests.get(url)
                 file_name = url.split('/')[-1]
-
                 with open(f'{path}\\{file_name}', "wb") as file:
                     file.write(response.content)
-                    # logging.info(f'Downloaded {file_name}, to {os.getcwd()}/assets')
 
             except FileExistsError as e:
-                # logging.error(f'File already exists \n {e}')
                 print(e)
-        # logging.info('Finished downloading all assets')
 
 
-    def make_pulti_dir():
+    def make_pulti_dir() -> None:
         if not os.path.exists(PULTI_DIR):
             threading.Thread(target=messagebox.showinfo,args=("Pulti Info", "Downloading assets, this might take a bit")).start()
             os.makedirs(f'{PULTI_DIR}\\media')
@@ -397,14 +395,14 @@ class Util:
             Util.download_assets(f'{PULTI_DIR}\\media', media_urls)
             Util.download_assets(f'{PULTI_DIR}\\scripts',['https://gist.github.com/cylorun/4fc69762a138f8ad88fb509d3d24bf73/raw/8d6995f5dbc8f0e667d0acb3a3b81b25963a2d8c/pulti_obs.lua'])
     
-    def open_exporer(path):
+    def open_exporer(path)-> None:
         subprocess.Popen(f'explorer {path}')
         messagebox.showinfo('Tutorial','Go to OBS > Tools > Scripts press the " + " and add this script there!')
 
 class WindowManager:
 
     @staticmethod
-    def set_playing(hwnd):
+    def set_playing(hwnd) -> None:
         if Util.get_window_mode() == 'b':
             WindowManager.set_borderless_pos(hwnd, 0, 0, INST_WIDTH, INST_HEIGHT)
         elif Util.get_window_mode() == 'w':
@@ -443,7 +441,7 @@ class WindowManager:
             WindowManager.set_instance_in_grid(inst.hwnd, inst.num)
 
     @staticmethod    
-    def set_reset(inst):
+    def set_reset(inst) -> None:
         if Util.get_wall_mode() == 'w':
             match Util.get_window_mode():
                 case 'b': WindowManager.set_borderless_pos(inst.hwnd, 0, 0, INST_WIDTH, RESETTING_HEIGHT)
@@ -453,11 +451,11 @@ class WindowManager:
 
 
     @staticmethod
-    def maximize_window(hwnd):
+    def maximize_window(hwnd) -> None:
         win32gui.ShowWindow(hwnd, win32con.SW_SHOWMAXIMIZED)
         
     @staticmethod
-    def activate_window(hwnd):
+    def activate_window(hwnd) -> None:
         user32 = ctypes.windll.user32
         user32.SwitchToThisWindow(hwnd, True)
         user32.SetForegroundWindow(hwnd)
@@ -471,7 +469,7 @@ class WindowManager:
 class ObsManager:
 
     @staticmethod
-    def update_obs(scene):
+    def update_obs(scene) -> None:
         if not Util.get_wall_mode == 'g':
             with open(f'{PULTI_DIR}\\obs.txt','w') as file:
                 if scene == 'w':
@@ -482,7 +480,7 @@ class ObsManager:
             logging.info(f'Obs cmd: {s}')
 
     @staticmethod
-    def get_projector_hwnd():
+    def get_projector_hwnd() -> int:
         win = Window.find_by_title('Projector')
         return win[0].hwnd
 
@@ -496,7 +494,6 @@ class ObsManager:
 
 
 if __name__ == '__main__':
-    print('runnin the roon one!')
-    Util.update_reset_count(14)
-    print(open(f'{PULTI_DIR}\\resets.txt', 'r').read())
+    Util.load_instance_paths()
+    print([inst.num for inst in instances])
 
