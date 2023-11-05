@@ -4,3 +4,5 @@ Fullscreen
 save & load instances from paths
 automatic obs setup
 more accurate reset counter, checks for world creation
+make inst num get the num better
+resetting takes a while
