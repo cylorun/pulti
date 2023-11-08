@@ -27,8 +27,6 @@ BACKGROUND_THREADS = int(THREADS*0.3)
 INWORLD_THREADS = int(THREADS*0.1)
 
 ahk = ahk.AHK()
-
-
 instances = []
 running = True
 
@@ -52,7 +50,7 @@ class MinecraftInstance:
 
         self.preview_paused = False
         self.inworld_paused = False
-        logging.info(f'Instance {self.num} detected')
+        logging.info(f'{self.path} detected')
 
 
 
@@ -67,7 +65,7 @@ class MinecraftInstance:
 
     def get_from_settings(self, setting) -> str: 
         file = open(f'{self.path}\\config\\standardoptions.txt').read().splitlines()
-        if '.txt' in file[0]: 
+        if '.txt' in file[0]:
             file = open(file[0]).read().splitlines()
 
         for line in file:
@@ -125,30 +123,30 @@ class Util:
         handlers=[logging.FileHandler(CURRENT_LOG), logging.StreamHandler()]
         )
         logging.info(f'------------- Pulti v{VERSION} -------------')
-        Util.redetect_instances()
+        Util.redetect_instances(instances)
         logging.info(f'Current settings:\n {str(config.settings).replace(',','\n')}')
-        threading.Thread(target=Util.reset_helper, daemon=True).start()
-        threading.Thread(target=Util.affinity_helper, daemon=True).start()
+        threading.Thread(target=Util.reset_helper, args=(instances,),daemon=True).start()
+        threading.Thread(target=Util.affinity_helper, args=(instances,),daemon=True).start()
         logging.info('Ready!')
         Util.play_sound('ready.wav')
         Util.set_hotkeys()
 
     @staticmethod
-    def redetect_instances():
-        instances.clear()
+    def redetect_instances(inst_list):
+        inst_list.clear()
         for mc in Window.find_by_title('Minecraft*'):
-            instances.append(MinecraftInstance(mc))
-        instances.sort(key=lambda x: x.num)
-        Util.set_instance_positions()
-        WindowManager.set_titles()
+            inst_list.append(MinecraftInstance(mc))
+        inst_list.sort(key=lambda x: x.num)
+        Util.set_instance_positions(instances)
+        WindowManager.set_titles(inst_list)
 
     @staticmethod
-    def set_instance_positions():
+    def set_instance_positions(inst_list):
         if Util.get_wall_mode() == 'w':
-            for inst in instances:
+            for inst in inst_list:
                 WindowManager.set_reset(inst)
         elif Util.get_wall_mode() == 'g':
-            WindowManager.make_instance_grid(instances)
+            WindowManager.make_instance_grid(inst_list)
 
     @staticmethod
     def get_wall_mode() -> str:
@@ -174,14 +172,14 @@ class Util:
                 with open(reset_file,'x'):
                     pass
             return 0
-        
+
     @staticmethod
     def update_reset_count(count=1) -> None:
         r = str(Util.get_resets('resets.txt') + count)
         sr = str(Util.get_resets('session_resets.txt') + count)
         with open(f'{PULTI_DIR}\\resets.txt', 'w') as resets, open(f'{PULTI_DIR}\\session_resets.txt', 'w') as session_resets:
             resets.write(r)
-            session_resets.write(r)
+            session_resets.write(sr)
 
     @staticmethod
     def set_hotkeys()-> None:
@@ -192,6 +190,7 @@ class Util:
         keyboard.add_hotkey(config.settings['focus_reset'], Util.reset_focus)
         keyboard.add_hotkey(config.settings['lock'], Util.lock_instance)
         keyboard.wait('f9')
+        # use kb.hook()
 
     @staticmethod
     def mouse_pos_to_inst() -> int:
@@ -219,7 +218,7 @@ class Util:
 
     @staticmethod
     def reset_instance(inst) -> None:  
-        Util.play_sound('reset.wav')
+        threading.Thread(target=Util.play_sound, args=('reset.wav',), daemon=True).start()
         threading.Thread(target=inst.reset).start()  
 
     @staticmethod
@@ -250,7 +249,7 @@ class Util:
         if Util.allow_hotkey():
             inst = Util.mouse_pos_to_inst()
             inst.locked = True
-            Util.play_sound('lock.wav')
+            threading.Thread(target=Util.play_sound, args=('lock.wav',), daemon=True).start()
             
     @staticmethod
     def get_locked_instances() -> list:
@@ -289,6 +288,7 @@ class Util:
             mixer.init()
             mixer.music.load(f'{PULTI_DIR}\\media\\{audio_file}')
             mixer.music.play()
+            mixer.music.unload()
         except Exception:
             logging.error(f'Audio` file not founnd, {audio_file.split('\\')[-1]}')
             Util.download_assets()
@@ -334,7 +334,7 @@ class Util:
             pass
 
     @staticmethod
-    def get_resetting() -> list:
+    def get_resetting(inst_list) -> list:
         li = []
         for inst in instances:
             if 'generating' or 'previewing' in inst.get_wp_state():
@@ -342,9 +342,9 @@ class Util:
         return li
     
 
-    def reset_helper() -> None:
+    def reset_helper(inst_list) -> None:
         while running:
-            for inst in Util.get_resetting():
+            for inst in Util.get_resetting(inst_list):
                 if not inst.preview_paused and 'previewing' in inst.get_wp_state():
                     ahk.run_script(f'ControlSend, , {{F3 down}}{{Esc down}}{{F3 up}}{{Esc up}}, ahk_id {str(inst.hwnd)}')
                     inst.preview_paused = True
@@ -354,9 +354,9 @@ class Util:
                         inst.inworld_paused = True
             time.sleep(RESET_DELAY)
 
-    def affinity_helper() -> None:
+    def affinity_helper(inst_list) -> None:
         while running:
-            for inst in instances:
+            for inst in inst_list:
                 if inst.locked:
                     Util.set_threads(inst.pid, LOCK_THREADS)
                 else:
@@ -461,8 +461,8 @@ class WindowManager:
         user32.BringWindowToTop(hwnd)
 
     @staticmethod
-    def set_titles():
-        for inst in instances:
+    def set_titles(inst_list):
+        for inst in inst_list:
             inst.set_title()
 
 class ObsManager:
