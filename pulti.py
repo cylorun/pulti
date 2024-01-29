@@ -7,7 +7,7 @@ from tkinter import messagebox
 
 VERSION = '0.3.0'
 
-PULTI_DIR = f'{os.environ['USERPROFILE']}\\.Pulti'
+PULTI_DIR = f'{os.environ["USERPROFILE"]}\\.Pulti'
 CURRENT_LOG = f'{PULTI_DIR}\\logs\\{datetime.date.today()}.log'
 
 THREADS = os.cpu_count()
@@ -124,7 +124,7 @@ class Util:
         )
         logging.info(f'------------- Pulti v{VERSION} -------------')
         Util.redetect_instances(instances)
-        logging.info(f'Current settings:\n {str(config.settings).replace(',','\n')}')
+        logging.info(f"Current settings:\n {str(config.settings).replace(',','\n')}")
         threading.Thread(target=Util.reset_helper, args=(instances,),daemon=True).start()
         threading.Thread(target=Util.affinity_helper, args=(instances,),daemon=True).start()
         logging.info('Ready!')
@@ -474,7 +474,7 @@ class ObsManager:
                 if scene == 'w':
                     s = config.settings['wall_scene']
                 else:
-                    s =f'{config.settings['inst_format_obs'].replace('*', scene)}'
+                    s =f'{config.settings["inst_format_obs"].replace("*", scene)}'
                 file.write(s)
             logging.info(f'Obs cmd: {s}')
 
