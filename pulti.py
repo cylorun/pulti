@@ -153,7 +153,9 @@ class Util:
         match config.settings['mode']:
             case 'Wall': return 'w'
             case 'Grid': return 'g'
-
+    @staticmethod
+    def get_instances() -> list:
+        return 
     @staticmethod
     def get_window_mode() -> str:
         match config.settings['window_mode']:

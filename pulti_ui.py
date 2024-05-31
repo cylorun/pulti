@@ -101,8 +101,8 @@ ts = ['inst_format_obs','wall_scene','taskbar_height','reset_all','play','focus_
 for i,s in enumerate(ts):
     add_textbox(s,settings[s],i)
 
-tk.Button(main_panel, text="Redetect Instances", command= pulti.Util.redetect_instances).grid(row=1,column=1)
-tk.Button(main_panel,text="Set Titles", command=pulti.WindowManager.set_titles).grid(row=2,column=1)
+tk.Button(main_panel, text="Redetect Instances", command= lambda: pulti.Util.redetect_instances(pulti.instances)).grid(row=1,column=1)
+tk.Button(main_panel,text="Set Titles", command=lambda: pulti.WindowManager.set_titles(pulti.instances)).grid(row=2,column=1)
 tk.Button(main_panel,text="Close Instances", command=pulti.Util.close_instances).grid(row=3,column=1)
 tk.Button(main_panel,text="Go to OBS controller", command= lambda: pulti.Util.open_exporer(f'{pulti.PULTI_DIR}\\scripts'),).grid(row=4,column=1)
 
